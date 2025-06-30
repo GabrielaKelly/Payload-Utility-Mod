@@ -5,6 +5,11 @@
 ## About
 Payload is a 1.21.4 Minecraft Utility Mod made for Anarchy Servers such as 2b2t and Constantiam. It was developed with the intention to be sold as a budget friendly client, but the developer quit the project and released the source code to last public build to me. Notably this client has working scaffold, elytra fly, and other features for both Constantiam and 2b2t.
 
+## Links:
+- Archived Discord: https://discord.gg/n4ePaP4dcH
+- DevBlogs: https://www.youtube.com/channel/UCUQqLZfutgsAQXFKTzIoMDA
+
+  
 ![image](menu.png)
 
 ## Modules
