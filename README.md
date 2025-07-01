@@ -1,5 +1,5 @@
 <h1 align="center">Payload 💉</h1> <p align="center"> <img src="menu.png" alt="Payload Menu"> </p>
-About
+## About
 Payload is a 1.21.4 Minecraft Utility Mod made for Anarchy Servers such as 2b2t and Constantiam.
 T developer quit the project and released the source code to last public build to me and told me it was cool if I posted it. So here we are.
 
