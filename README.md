@@ -3,12 +3,12 @@ About
 Payload is a 1.21.4 Minecraft Utility Mod made for Anarchy Servers such as 2b2t and Constantiam.
 T developer quit the project and released the source code to last public build to me and told me it was cool if I posted it. So here we are.
 
-Links
+## Links
 📂 Archived Discord: https://discord.gg/n4ePaP4dcH
 
 📝 DevBlogs: https://www.youtube.com/channel/UCUQqLZfutgsAQXFKTzIoMDA
 
-Modules
+## Modules
 <details> <summary>Click to view full list (115 modules)</summary>
 LitematicaPrinter
 ClientGUI
@@ -127,11 +127,11 @@ YawLock
 Zoom
 
 </details>
-License
+## License
 This project is licensed under the GNU General Public License v3.0.
 See the LICENSE.md file for details.
 
-Contact
+## Contact
 This is no longer supported by the original developer. I am solely reuploading the source code.
 
 Let me know if you'd like to add badges, navigation, or installation/build instructions too.
