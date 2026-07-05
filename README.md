@@ -1,6 +1,4 @@
-<<<<<<< HEAD
-hello world
-=======
+
 
 ## About
 Payload is a 1.21.4 Minecraft Utility Mod made for Anarchy Servers such as 2b2t and Constantiam. Developed by deprecatedchase and pooseh.
@@ -136,4 +134,3 @@ Zoom
 ## License
 This project is licensed under the GNU General Public License v3.0.
 See the LICENSE.md file for details.
->>>>>>> 673ffe65041191fc7e4690f479354c3429df8244
