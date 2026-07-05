@@ -1,0 +1,477 @@
+{
+  "my_sound": {
+    "sounds": [
+      "payload:my_sound"
+    ]
+  },
+  "anime": {
+    "sounds": [
+      "payload:anime"
+    ]
+  },
+  "armor": {
+    "sounds": [
+      "payload:armor"
+    ]
+  },
+  "armor2": {
+    "sounds": [
+      "payload:armor2"
+    ]
+  },
+  "armor3": {
+    "sounds": [
+      "payload:armor3"
+    ]
+  },
+  "armor4": {
+    "sounds": [
+      "payload:armor4"
+    ]
+  },
+  "armor5": {
+    "sounds": [
+      "payload:armor5"
+    ]
+  },
+  "baka_youdidit": {
+    "sounds": [
+      "payload:baka_youdidit"
+    ]
+  },
+  "betterluck": {
+    "sounds": [
+      "payload:betterluck"
+    ]
+  },
+  "betterluck2": {
+    "sounds": [
+      "payload:betterluck2"
+    ]
+  },
+  "betterluck3": {
+    "sounds": [
+      "payload:betterluck3"
+    ]
+  },
+  "betterluck4": {
+    "sounds": [
+      "payload:betterluck4"
+    ]
+  },
+  "betterluck5": {
+    "sounds": [
+      "payload:betterluck5"
+    ]
+  },
+  "bff": {
+    "sounds": [
+      "payload:bff"
+    ]
+  },
+  "bff2": {
+    "sounds": [
+      "payload:bff2"
+    ]
+  },
+  "boo1": {
+    "sounds": [
+      "payload:boo1"
+    ]
+  },
+  "boo2": {
+    "sounds": [
+      "payload:boo2"
+    ]
+  },
+  "boo3": {
+    "sounds": [
+      "payload:boo3"
+    ]
+  },
+  "buzz": {
+    "sounds": [
+      "payload:buzz"
+    ]
+  },
+  "buzz2": {
+    "sounds": [
+      "payload:buzz2"
+    ]
+  },
+  "canihaveyourstash": {
+    "sounds": [
+      "payload:canihaveyourstash"
+    ]
+  },
+  "canihaveyourstash2": {
+    "sounds": [
+      "payload:canihaveyourstash2"
+    ]
+  },
+  "canihaveyourstash3": {
+    "sounds": [
+      "payload:canihaveyourstash3"
+    ]
+  },
+  "diamond2": {
+    "sounds": [
+      "payload:diamond2"
+    ]
+  },
+  "diamondhelmet": {
+    "sounds": [
+      "payload:diamondhelmet"
+    ]
+  },
+  "donkeydupe1": {
+    "sounds": [
+      "payload:donkeydupe1"
+    ]
+  },
+  "donkeydupe2": {
+    "sounds": [
+      "payload:donkeydupe2"
+    ]
+  },
+  "doyoulovemeback": {
+    "sounds": [
+      "payload:doyoulovemeback"
+    ]
+  },
+  "doyoulovemeback2": {
+    "sounds": [
+      "payload:doyoulovemeback2"
+    ]
+  },
+  "doyoulovemeback3": {
+    "sounds": [
+      "payload:doyoulovemeback3"
+    ]
+  },
+  "doyoulovemeback4": {
+    "sounds": [
+      "payload:doyoulovemeback4"
+    ]
+  },
+  "egg": {
+    "sounds": [
+      "payload:egg"
+    ]
+  },
+  "egg2": {
+    "sounds": [
+      "payload:egg2"
+    ]
+  },
+  "egg3": {
+    "sounds": [
+      "payload:egg3"
+    ]
+  },
+  "hauhhhh": {
+    "sounds": [
+      "payload:hauhhhh"
+    ]
+  },
+  "headshot": {
+    "sounds": [
+      "payload:headshot"
+    ]
+  },
+  "headshot2": {
+    "sounds": [
+      "payload:headshot2"
+    ]
+  },
+  "headshot3": {
+    "sounds": [
+      "payload:headshot3"
+    ]
+  },
+  "headshot5": {
+    "sounds": [
+      "payload:headshot5"
+    ]
+  },
+  "headshot6": {
+    "sounds": [
+      "payload:headshot6"
+    ]
+  },
+  "hoiiiiiy": {
+    "sounds": [
+      "payload:hoiiiiiy"
+    ]
+  },
+  "hoyy": {
+    "sounds": [
+      "payload:hoyy"
+    ]
+  },
+  "hoyyyy": {
+    "sounds": [
+      "payload:hoyyyy"
+    ]
+  },
+  "hoyyyyyy": {
+    "sounds": [
+      "payload:hoyyyyyy"
+    ]
+  },
+  "iknewyoucoulddoit": {
+    "sounds": [
+      "payload:iknewyoucoulddoit"
+    ]
+  },
+  "iknewyoucoulddoit2": {
+    "sounds": [
+      "payload:iknewyoucoulddoit2"
+    ]
+  },
+  "iknewyoucoulddoit3": {
+    "sounds": [
+      "payload:iknewyoucoulddoit3"
+    ]
+  },
+  "iknewyoucoulddoit4": {
+    "sounds": [
+      "payload:iknewyoucoulddoit4"
+    ]
+  },
+  "longsmug_laugh": {
+    "sounds": [
+      "payload:longsmug_laugh"
+    ]
+  },
+  "meanlaugh_longest": {
+    "sounds": [
+      "payload:meanlaugh_longest"
+    ]
+  },
+  "newvegas1": {
+    "sounds": [
+      "payload:newvegas1"
+    ]
+  },
+  "ohyoudidit_best": {
+    "sounds": [
+      "payload:ohyoudidit_best"
+    ]
+  },
+  "oops": {
+    "sounds": [
+      "payload:oops"
+    ]
+  },
+  "oops2": {
+    "sounds": [
+      "payload:oops2"
+    ]
+  },
+  "oops3": {
+    "sounds": [
+      "payload:oops3"
+    ]
+  },
+  "oops4": {
+    "sounds": [
+      "payload:oops4"
+    ]
+  },
+  "ouch": {
+    "sounds": [
+      "payload:ouch"
+    ]
+  },
+  "ouch2": {
+    "sounds": [
+      "payload:ouch2"
+    ]
+  },
+  "ouch3": {
+    "sounds": [
+      "payload:ouch3"
+    ]
+  },
+  "ouch4": {
+    "sounds": [
+      "payload:ouch4"
+    ]
+  },
+  "ouch5": {
+    "sounds": [
+      "payload:ouch5"
+    ]
+  },
+  "payload": {
+    "sounds": [
+      "payload:payload"
+    ]
+  },
+  "payload2": {
+    "sounds": [
+      "payload:payload2"
+    ]
+  },
+  "payload3": {
+    "sounds": [
+      "payload:payload3"
+    ]
+  },
+  "payload5": {
+    "sounds": [
+      "payload:payload5"
+    ]
+  },
+  "payload6": {
+    "sounds": [
+      "payload:payload6"
+    ]
+  },
+  "payload7": {
+    "sounds": [
+      "payload:payload7"
+    ]
+  },
+  "pingcarried": {
+    "sounds": [
+      "payload:pingcarried"
+    ]
+  },
+  "planb": {
+    "sounds": [
+      "payload:planb"
+    ]
+  },
+  "planb2": {
+    "sounds": [
+      "payload:planb2"
+    ]
+  },
+  "planb3": {
+    "sounds": [
+      "payload:planb3"
+    ]
+  },
+  "scream1": {
+    "sounds": [
+      "payload:scream1"
+    ]
+  },
+  "scream2": {
+    "sounds": [
+      "payload:scream2"
+    ]
+  },
+  "scream3": {
+    "sounds": [
+      "payload:scream3"
+    ]
+  },
+  "shh": {
+    "sounds": [
+      "payload:shh"
+    ]
+  },
+  "shh2": {
+    "sounds": [
+      "payload:shh2"
+    ]
+  },
+  "skeetskeet": {
+    "sounds": [
+      "payload:skeetskeet"
+    ]
+  },
+  "skeetskeet2": {
+    "sounds": [
+      "payload:skeetskeet2"
+    ]
+  },
+  "skyrim1": {
+    "sounds": [
+      "payload:skyrim1"
+    ]
+  },
+  "smug_laugh": {
+    "sounds": [
+      "payload:smug_laugh"
+    ]
+  },
+  "smug_laugh2": {
+    "sounds": [
+      "payload:smug_laugh2"
+    ]
+  },
+  "thesemodulesusedto": {
+    "sounds": [
+      "payload:thesemodulesusedto"
+    ]
+  },
+  "timetorun": {
+    "sounds": [
+      "payload:timetorun"
+    ]
+  },
+  "timetorun2": {
+    "sounds": [
+      "payload:timetorun2"
+    ]
+  },
+  "timetorun3": {
+    "sounds": [
+      "payload:timetorun3"
+    ]
+  },
+  "totem": {
+    "sounds": [
+      "payload:totem"
+    ]
+  },
+  "whimper": {
+    "sounds": [
+      "payload:whimper"
+    ]
+  },
+  "youdidit": {
+    "sounds": [
+      "payload:youdidit"
+    ]
+  },
+  "yummy": {
+    "sounds": [
+      "payload:yummy"
+    ]
+  },
+  "yummy2": {
+    "sounds": [
+      "payload:yummy2"
+    ]
+  },
+  "yummy3": {
+    "sounds": [
+      "payload:yummy3"
+    ]
+  },
+  "halosprint": {
+    "sounds": [
+      "payload:halosprint"
+    ]
+  },
+  "haloshoot": {
+    "sounds": [
+      "payload:haloshoot"
+    ]
+  },
+  "haloshoot2": {
+    "sounds": [
+      "payload:haloshoot2"
+    ]
+  },
+  "halohurt": {
+    "sounds": [
+      "payload:halohurt"
+    ]
+  }
+}
