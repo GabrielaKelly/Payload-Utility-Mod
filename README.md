@@ -1,4 +1,3 @@
-<h1 align="center">Payload 💉</h1> <p align="center"> </div> <img src="menu.png" alt="Payload Menu"> </p>
 
 ## About
 Payload is a 1.21.4 Minecraft Utility Mod made for Anarchy Servers such as 2b2t and Constantiam. Developed by deprecatedchase and pooseh.
@@ -10,10 +9,6 @@ Download the Jar and move it into your existing mods folder. Make sure all depen
 ## Using the Source
 Download the source and make sure your gradle is properly configured. Compile the client and the jar file can be found in libs\build.
 
-## Links
-📂 Archived Discord: https://discord.gg/n4ePaP4dcH
-
-📝 DevBlogs: https://www.youtube.com/channel/UCUQqLZfutgsAQXFKTzIoMDA
 
 ## Modules
 <details> <summary>Click to view full list (115 modules)</summary>
@@ -134,9 +129,6 @@ YawLock
 Zoom
 
 </details>
-
-## Contact
-This is no longer supported by the original developer. I am solely reuploading the source code.
 
 ## License
 This project is licensed under the GNU General Public License v3.0.
