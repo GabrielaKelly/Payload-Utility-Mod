@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"id": "payload",
+	"version": "1.4.4",
+	"name": "Payload Utility Mod",
+	"description": "",
+	"authors": [
+		"verticalsaw"
+	],
+	"contact": {
+		"homepage": "https://payload.technology/",
+		"sources": "https://payload.technology/",
+		"issues": "https://payload.technology/",
+		"discord": "https://payload.technology/"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/payload/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"main": [
+			"net.payload.Payload"
+		]
+	},
+	"accessWidener": "payload.accesswidener",
+	"mixins": [
+		"payload.mixins.json",
+		"payload-sodium.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.16.9",
+		"minecraft": "~1.21.3",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
