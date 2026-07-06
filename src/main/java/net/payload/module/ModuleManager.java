@@ -28,7 +28,6 @@ import net.payload.settings.SettingManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.InputUtil.Key;
 import net.payload.module.modules.client.*;
-
 import static net.payload.PayloadClient.MC;
 
 public class ModuleManager implements KeyDownListener, Render2DListener {
@@ -36,6 +35,7 @@ public class ModuleManager implements KeyDownListener, Render2DListener {
 	private MinecraftClient mc = MinecraftClient.getInstance();
 
 	// Modules
+	public PortalGui portalgui = new PortalGui();
 	public LitematicaPrinter litematicaPrinter = new LitematicaPrinter();
 	public ClientGUI clientGUI = new ClientGUI();
 	public Rotations rotations = new Rotations();

@@ -32,7 +32,7 @@ public class WatermarkHud extends HudWindow {
 	}
 
 	private String getWatermarkText() {
-		return "Payload pre-release";
+		return "Payload 1.2";
 	}
 
 	private float calculateWidth() {

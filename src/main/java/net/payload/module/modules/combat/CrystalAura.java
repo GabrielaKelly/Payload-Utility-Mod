@@ -46,796 +46,150 @@ import net.payload.utils.player.combat.EntityUtil;
 import net.payload.utils.player.combat.SwingSide;
 import net.payload.utils.render.Render3D;
 
-import java.util.ArrayList;
-import java.util.UUID;
+import java.util.*;
 
 import static net.payload.utils.block.OtherBlockUtils.getBlock;
 import static net.payload.utils.block.OtherBlockUtils.hasCrystal;
 
 public class CrystalAura extends Module implements TickListener, Render3DListener, LookAtListener, SendPacketListener, SendMovementPacketListener {
 
-    private enum SwapMode {
-        Off, Normal, Silent, Inventory
-    }
-
-    // Setting Group for General settings
-    private final SettingGroup generalSettings = SettingGroup.Builder.builder()
-            .id("autocrystal_general")
-            .displayName("General")
-            .description("General AutoCrystal settings")
-            .build();
-
-    // General Settings
-
-    //Possibly future anchor aura.
-    private final BooleanSetting preferAnchor = BooleanSetting.builder()
-            .id("autocrystal_prefer_anchor")
-            .displayName("Prefer Anchor")
-            .description("Prioritizes end anchors over end crystals when available")
-            .defaultValue(false)
-            .build();
-
-    private final BooleanSetting breakOnlyHasCrystal = BooleanSetting.builder()
-            .id("autocrystal_only_hold")
-            .displayName("Only Hold")
-            .description("Only breaks crystals when holding a crystal or anchor")
-            .defaultValue(true)
-            .build();
-
-    private final EnumSetting<SwingSide> swingMode = EnumSetting.<SwingSide>builder()
-            .id("autocrystal_swing")
-            .displayName("Swing")
-            .description("Determines which hand to swing when interacting with crystals")
-            .defaultValue(SwingSide.All)
-            .build();
-
-    private final BooleanSetting eatingPause = BooleanSetting.builder()
-            .id("autocrystal_eating_pause")
-            .displayName("Eating Pause")
-            .description("Pauses crystal operations while eating")
-            .defaultValue(true)
-            .build();
-
-    private final FloatSetting switchCooldown = FloatSetting.builder()
-            .id("autocrystal_switch_pause")
-            .displayName("Switch Pause")
-            .description("Cooldown after switching items in milliseconds")
-            .defaultValue(100f)
-            .minValue(0f)
-            .maxValue(1000f)
-            .step(10f)
-            .build();
-
-    private final FloatSetting targetRange = FloatSetting.builder()
-            .id("autocrystal_target_range")
-            .displayName("Target Range")
-            .description("Maximum distance to target players in meters")
-            .defaultValue(12.0f)
-            .minValue(0.0f)
-            .maxValue(20.0f)
-            .step(0.5f)
-            .build();
-
-    private final FloatSetting updateDelay = FloatSetting.builder()
-            .id("autocrystal_update_delay")
-            .displayName("Update Delay")
-            .description("Delay between calculations in milliseconds")
-            .defaultValue(50f)
-            .minValue(0f)
-            .maxValue(1000f)
-            .step(10f)
-            .build();
-
-    private final FloatSetting wallRange = FloatSetting.builder()
-            .id("autocrystal_wall_range")
-            .displayName("Wall Range")
-            .description("Maximum distance to target players through walls in meters")
-            .defaultValue(6.0f)
-            .minValue(0.0f)
-            .maxValue(6.0f)
-            .step(0.1f)
-            .build();
-
-    // Setting Group for Rotation settings
-    private final SettingGroup rotationSettings = SettingGroup.Builder.builder()
-            .id("autocrystal_rotation")
-            .displayName("Rotation")
-            .description("Settings for player rotation when using crystals")
-            .build();
-
-    // Rotation Settings
-    private final BooleanSetting rotate = BooleanSetting.builder()
-            .id("autocrystal_rotate")
-            .displayName("Rotate")
-            .description("Rotates player view when interacting with crystals")
-            .defaultValue(true)
-            .build();
-
-    private final BooleanSetting onBreak = BooleanSetting.builder()
-            .id("autocrystal_on_break")
-            .displayName("On Break")
-            .description("Only rotate when breaking crystals")
-            .defaultValue(false)
-
-            .build();
-
-    private final FloatSetting yOffset = FloatSetting.builder()
-            .id("autocrystal_y_offset")
-            .displayName("Y Offset")
-            .description("Vertical offset for rotation calculations")
-            .defaultValue(0.05f)
-            .minValue(0f)
-            .maxValue(1f)
-            .step(0.01f)
-
-            .build();
-
-    private final BooleanSetting yawStep = BooleanSetting.builder()
-            .id("autocrystal_yaw_step")
-            .displayName("Yaw Step")
-            .description("Gradually rotate instead of snapping to position")
-            .defaultValue(false)
-            .build();
-
-    private final FloatSetting steps = FloatSetting.builder()
-            .id("autocrystal_steps")
-            .displayName("Steps")
-            .description("Step size for gradual rotation")
-            .defaultValue(0.8f)
-            .minValue(0f)
-            .maxValue(1f)
-            .step(0.1f)
-
-            .build();
-
-    private final BooleanSetting checkFov = BooleanSetting.builder()
-            .id("autocrystal_only_looking")
-            .displayName("Only Looking")
-            .description("Only rotate to crystals within field of view")
-            .defaultValue(false)
-
-            .build();
-
-    private final FloatSetting fov = FloatSetting.builder()
-            .id("autocrystal_fov")
-            .displayName("FOV")
-            .description("Field of view angle in degrees")
-            .defaultValue(30f)
-            .minValue(0f)
-            .maxValue(50f)
-            .step(1f)
-
-            .build();
-
-    private final FloatSetting priority = FloatSetting.builder()
-            .id("autocrystal_priority")
-            .displayName("Priority")
-            .description("Rotation priority level")
-            .defaultValue(10f)
-            .minValue(0f)
-            .maxValue(100f)
-            .step(1f)
-
-            .build();
-
-    // Setting Group for Interaction settings
-    private final SettingGroup interactionSettings = SettingGroup.Builder.builder()
-            .id("autocrystal_interaction")
-            .displayName("Interaction")
-            .description("Settings for crystal placement and breaking")
-            .build();
-
-    // Damage Settings
-    private final FloatSetting autoMinDamage = FloatSetting.builder()
-            .id("autocrystal_piston_min")
-            .displayName("Piston Min")
-            .description("Minimum damage required for auto piston placement in damage points")
-            .defaultValue(5.0f)
-            .minValue(0.0f)
-            .maxValue(36.0f)
-            .step(0.5f)
-            .build();
-
-    private final FloatSetting minDamage = FloatSetting.builder()
-            .id("autocrystal_min")
-            .displayName("Min")
-            .description("Minimum damage required for crystal placement in damage points")
-            .defaultValue(5.0f)
-            .minValue(0.0f)
-            .maxValue(36.0f)
-            .step(0.5f)
-            .build();
-
-    private final FloatSetting maxSelf = FloatSetting.builder()
-            .id("autocrystal_self")
-            .displayName("Self")
-            .description("Maximum self-damage allowed in damage points")
-            .defaultValue(12.0f)
-            .minValue(0.0f)
-            .maxValue(36.0f)
-            .step(0.5f)
-            .build();
-
-    private final FloatSetting range = FloatSetting.builder()
-            .id("autocrystal_range")
-            .displayName("Range")
-            .description("Maximum placement range in meters")
-            .defaultValue(5.0f)
-            .minValue(0.0f)
-            .maxValue(6.0f)
-            .step(0.1f)
-            .build();
-
-    private final FloatSetting noSuicide = FloatSetting.builder()
-            .id("autocrystal_no_suicide")
-            .displayName("No Suicide")
-            .description("Prevents actions that would reduce health below this threshold in health points")
-            .defaultValue(3.0f)
-            .minValue(0.0f)
-            .maxValue(10.0f)
-            .step(0.5f)
-            .build();
-
-    private final BooleanSetting smart = BooleanSetting.builder()
-            .id("autocrystal_smart")
-            .displayName("Smart")
-            .description("Uses intelligent algorithms to optimize crystal placement")
-            .defaultValue(true)
-            .build();
-
-    // Place Settings
-    private final BooleanSetting place = BooleanSetting.builder()
-            .id("autocrystal_place")
-            .displayName("Place")
-            .description("Enables crystal placement")
-            .defaultValue(true)
-            .build();
-
-    private final FloatSetting placeDelay = FloatSetting.builder()
-            .id("autocrystal_place_delay")
-            .displayName("Place Delay")
-            .description("Delay between crystal placements in milliseconds")
-            .defaultValue(150f)
-            .minValue(0f)
-            .maxValue(1000f)
-            .step(10f)
-
-            .build();
-
-    private final EnumSetting<SwapMode> autoSwap = EnumSetting.<SwapMode>builder()
-            .id("autocrystal_auto_swap")
-            .displayName("Auto Swap")
-            .description("Automatically switches to crystals when needed")
-            .defaultValue(SwapMode.Normal)
-            .build();
-
-    private final BooleanSetting afterBreak = BooleanSetting.builder()
-            .id("autocrystal_after_break")
-            .displayName("After Break")
-            .description("Places crystals immediately after breaking")
-            .defaultValue(true)
-
-            .build();
-
-    // Break Settings
-    private final BooleanSetting breakSetting = BooleanSetting.builder()
-            .id("autocrystal_break")
-            .displayName("Break")
-            .description("Enables crystal breaking")
-            .defaultValue(true)
-            .build();
-
-    private final FloatSetting breakDelay = FloatSetting.builder()
-            .id("autocrystal_break_delay")
-            .displayName("Break Delay")
-            .description("Delay between crystal breaks in milliseconds")
-            .defaultValue(150f)
-            .minValue(0f)
-            .maxValue(1000f)
-            .step(10f)
-
-            .build();
-
-    private final FloatSetting minAge = FloatSetting.builder()
-            .id("autocrystal_min_age")
-            .displayName("Min Age")
-            .description("Minimum age of crystals before breaking in ticks")
-            .defaultValue(0f)
-            .minValue(0f)
-            .maxValue(20f)
-            .step(1f)
-
-            .build();
-
-    private final BooleanSetting breakRemove = BooleanSetting.builder()
-            .id("autocrystal_remove")
-            .displayName("Memory Remove")
-            .description("Removes crystals from memory after breaking")
-            .defaultValue(false)
-
-            .build();
-
-    private final BooleanSetting onlyTick = BooleanSetting.builder()
-            .id("autocrystal_only_tick")
-            .displayName("Only Tick")
-            .description("Only performs operations on game ticks")
-            .defaultValue(false)
-            .build();
-
-    // Setting Group for Calculation settings
-    private final SettingGroup calculationSettings = SettingGroup.Builder.builder()
-            .id("autocrystal_calculation")
-            .displayName("Calculation")
-            .description("Settings for damage calculation algorithms and performance")
-            .build();
-
-    // Calculation Settings
-    private final BooleanSetting thread = BooleanSetting.builder()
-            .id("autocrystal_thread")
-            .displayName("Thread")
-            .description("Performs calculations in a separate thread to improve performance")
-            .defaultValue(false)
-            .build();
-
-    private final BooleanSetting doCrystal = BooleanSetting.builder()
-            .id("autocrystal_thread_interact")
-            .displayName("Thread Interact")
-            .description("Performs crystal interactions in the calculation thread")
-            .defaultValue(false)
-            .build();
-
-    private final BooleanSetting lite = BooleanSetting.builder()
-            .id("autocrystal_less_cpu")
-            .displayName("Less CPU")
-            .description("Reduces CPU usage by optimizing calculations at the cost of some precision")
-            .defaultValue(false)
-            .build();
-
-    private final FloatSetting predictTicks = FloatSetting.builder()
-            .id("autocrystal_predict")
-            .displayName("Predict")
-            .description("Number of ticks to predict player movement for calculations")
-            .defaultValue(4f)
-            .minValue(0f)
-            .maxValue(10f)
-            .step(1f)
-            .build();
-
-    private final BooleanSetting terrainIgnore = BooleanSetting.builder()
-            .id("autocrystal_terrain_ignore")
-            .displayName("Terrain Ignore")
-            .description("Ignores terrain when calculating crystal damage")
-            .defaultValue(true)
-            .build();
-
-    // Setting Group for Miscellaneous settings
-    private final SettingGroup miscSettings = SettingGroup.Builder.builder()
-            .id("autocrystal_misc")
-            .displayName("Miscellaneous")
-            .description("Additional specialized settings for crystal combat")
-            .build();
-
-    // Mining Settings
-    private final BooleanSetting ignoreMine = BooleanSetting.builder()
-            .id("autocrystal_ignore_mine")
-            .displayName("Ignore Mine")
-            .description("Ignores blocks being mined when placing crystals")
-            .defaultValue(true)
-            .build();
-
-    private final FloatSetting constantProgress = FloatSetting.builder()
-            .id("autocrystal_progress")
-            .displayName("Progress")
-            .description("Minimum mining progress percentage to consider a block as being mined")
-            .defaultValue(90.0f)
-            .minValue(0.0f)
-            .maxValue(100.0f)
-            .step(1.0f)
-
-            .build();
-
-    // Anti-Surround Settings
-    private final BooleanSetting antiSurround = BooleanSetting.builder()
-            .id("autocrystal_anti_surround")
-            .displayName("Anti Surround")
-            .description("Attempts to break enemy surrounds with crystal placements")
-            .defaultValue(false)
-            .build();
-
-    private final FloatSetting antiSurroundMax = FloatSetting.builder()
-            .id("autocrystal_when_lower")
-            .displayName("When Lower")
-            .description("Only attempts anti-surround when potential damage is below this threshold in damage points")
-            .defaultValue(5.0f)
-            .minValue(0.0f)
-            .maxValue(36.0f)
-            .step(0.5f)
-
-            .build();
-
-    // Timeout Settings
-    private final BooleanSetting slowPlace = BooleanSetting.builder()
-            .id("autocrystal_timeout")
-            .displayName("Timeout")
-            .description("Implements a timeout for crystal placements to prevent wasteful spam")
-            .defaultValue(true)
-            .build();
-
-    private final FloatSetting slowDelay = FloatSetting.builder()
-            .id("autocrystal_timeout_delay")
-            .displayName("Timeout Delay")
-            .description("Duration of the timeout period in milliseconds")
-            .defaultValue(200f)
-            .minValue(0f)
-            .maxValue(2000f)
-            .step(50f)
-
-            .build();
-
-    private final FloatSetting slowMinDamage = FloatSetting.builder()
-            .id("autocrystal_timeout_min")
-            .displayName("Timeout Override HP")
-            .description("Minimum damage required to bypass timeout in damage points")
-            .defaultValue(1.5f)
-            .minValue(0.0f)
-            .maxValue(36.0f)
-            .step(0.5f)
-
-            .build();
-
-    // Force Place Settings
-    private final BooleanSetting forcePlace = BooleanSetting.builder()
-            .id("autocrystal_force_place")
-            .displayName("Force Place")
-            .description("Forces crystal placement when target is vulnerable")
-            .defaultValue(true)
-            .build();
-
-    private final FloatSetting forceMaxHealth = FloatSetting.builder()
-            .id("autocrystal_lower_than")
-            .displayName("Lower Than")
-            .description("Forces placement when target health is below this threshold in health points")
-            .defaultValue(7f)
-            .minValue(0f)
-            .maxValue(36f)
-            .step(1f)
-
-            .build();
-
-    private final FloatSetting forceMin = FloatSetting.builder()
-            .id("autocrystal_force_min")
-            .displayName("Force Min HP")
-            .description("Minimum damage required for forced placement in damage points")
-            .defaultValue(1.5f)
-            .minValue(0.0f)
-            .maxValue(36.0f)
-            .step(0.5f)
-
-            .build();
-
-    // Armor Breaker Settings
-    private final BooleanSetting armorBreaker = BooleanSetting.builder()
-            .id("autocrystal_armor_breaker")
-            .displayName("Armor Breaker")
-            .description("Targets enemies with low durability armor")
-            .defaultValue(true)
-            .build();
-
-    private final FloatSetting maxDurable = FloatSetting.builder()
-            .id("autocrystal_max_durable")
-            .displayName("Max Durable")
-            .description("Maximum armor durability percentage to target with armor breaker")
-            .defaultValue(8f)
-            .minValue(0f)
-            .maxValue(100f)
-            .step(1f)
-
-            .build();
-
-    private final FloatSetting armorBreakerDamage = FloatSetting.builder()
-            .id("autocrystal_breaker_min")
-            .displayName("Breaker Min")
-            .description("Minimum damage required for armor breaking in damage points")
-            .defaultValue(3.0f)
-            .minValue(0.0f)
-            .maxValue(36.0f)
-            .step(0.5f)
-
-            .build();
-
-    // Timing Settings
-    private final FloatSetting hurtTime = FloatSetting.builder()
-            .id("autocrystal_hurt_time")
-            .displayName("Hurt Time")
-            .description("Maximum hurt time to consider when attacking entities in ticks")
-            .defaultValue(10f)
-            .minValue(0f)
-            .maxValue(10f)
-            .step(1f)
-            .build();
-
-    private final FloatSetting waitHurt = FloatSetting.builder()
-            .id("autocrystal_wait_hurt")
-            .displayName("Wait Hurt")
-            .description("Time to wait after entity is hurt in ticks")
-            .defaultValue(10f)
-            .minValue(0f)
-            .maxValue(10f)
-            .step(1f)
-            .build();
-
-    private final FloatSetting syncTimeout = FloatSetting.builder()
-            .id("autocrystal_wait_timeout")
-            .displayName("Wait Timeout")
-            .description("Maximum time to wait for server synchronization in milliseconds")
-            .defaultValue(500f)
-            .minValue(0f)
-            .maxValue(2000f)
-            .step(10f)
-            .build();
-
-    // Web Force Settings
-    private final BooleanSetting forceWeb = BooleanSetting.builder()
-            .id("autocrystal_force_web")
-            .displayName("Force Web")
-            .description("Forces crystal placement when target is in a web")
-            .defaultValue(false)
-            .build();
-
-    public final BooleanSetting airPlace = BooleanSetting.builder()
-            .id("autocrystal_air_place")
-            .displayName("Web Air Place")
-            .description("Allows placing crystals in air when target is in a web")
-            .defaultValue(false)
-
-            .build();
-
-    public final BooleanSetting replace = BooleanSetting.builder()
-            .id("autocrystal_replace")
-            .displayName("Web Replace")
-            .description("Replaces existing blocks with crystals when target is in a web")
-            .defaultValue(false)
-            .build();
-
-    private final SettingGroup renderSettings = SettingGroup.Builder.builder()
-            .id("autocrystal_render")
-            .displayName("Render")
-            .description("Rendering AutoCrystal settings")
-            .build();
-
-    private final BooleanSetting targetRender = BooleanSetting.builder()
-            .id("autocrystal_targetrender")
-            .displayName("TargetESP")
-            .description("Renders target positions")
-            .defaultValue(true)
-            .build();
-
-    private final ColorSetting targetColor = ColorSetting.builder()
-            .id("autocrystal_targetcolor")
-            .displayName("Target Color")
-            .description("Color of the render")
-            .defaultValue(new Color(0, 255, 0, 75))
-            .build();
-
-    private final BooleanSetting posRender = BooleanSetting.builder()
-            .id("autocrystal_targetrender")
-            .displayName("PlaceESP")
-            .description("Renders target positions")
-            .defaultValue(true)
-            .build();
-
-    private final ColorSetting posColor = ColorSetting.builder()
-            .id("autocrystal_targetcolor")
-            .displayName("Placement Color")
-            .description("Color of the render")
-            .defaultValue(new Color(255, 0, 0, 75))
-            .build();
-
-    private final FloatSetting lineWidth = FloatSetting.builder()
-            .id("autocrystal_line_width")
-            .displayName("Line Width")
-            .description("Width of outline lines")
-            .defaultValue(1.5f)
-            .minValue(0.1f)
-            .maxValue(5f)
-            .step(0.1f)
-            .build();
-
-    public CrystalAura() {
-    	super("CrystalAura");
-
-        this.setCategory(Category.of("Combat"));
-        this.setDescription("Destroys and places endcrystals to kill opponents");
-
-        //generalSettings.addSetting(preferAnchor);
-        generalSettings.addSetting(breakOnlyHasCrystal);
-        generalSettings.addSetting(swingMode);
-        generalSettings.addSetting(eatingPause);
-        generalSettings.addSetting(switchCooldown);
-        generalSettings.addSetting(targetRange);
-        generalSettings.addSetting(updateDelay);
-        generalSettings.addSetting(wallRange);
-
-        // Add group to module
-        this.addSetting(generalSettings);
-
-        // Register settings with SettingManager
-        SettingManager.registerSetting(generalSettings);
-      //  SettingManager.registerSetting(preferAnchor);
-        SettingManager.registerSetting(breakOnlyHasCrystal);
-        SettingManager.registerSetting(swingMode);
-        SettingManager.registerSetting(eatingPause);
-        SettingManager.registerSetting(switchCooldown);
-        SettingManager.registerSetting(targetRange);
-        SettingManager.registerSetting(updateDelay);
-        SettingManager.registerSetting(wallRange);
-
-        rotationSettings.addSetting(rotate);
-        rotationSettings.addSetting(onBreak);
-        rotationSettings.addSetting(yOffset);
-        rotationSettings.addSetting(yawStep);
-        rotationSettings.addSetting(steps);
-        rotationSettings.addSetting(checkFov);
-        rotationSettings.addSetting(fov);
-        rotationSettings.addSetting(priority);
-
-        // Add group to module
-        this.addSetting(rotationSettings);
-
-        // Register settings with SettingManager
-        SettingManager.registerSetting(rotationSettings);
-        SettingManager.registerSetting(rotate);
-        SettingManager.registerSetting(onBreak);
-        SettingManager.registerSetting(yOffset);
-        SettingManager.registerSetting(yawStep);
-        SettingManager.registerSetting(steps);
-        SettingManager.registerSetting(checkFov);
-        SettingManager.registerSetting(fov);
-        SettingManager.registerSetting(priority);
-
-        // Add settings to interaction group
-        //interactionSettings.addSetting(autoMinDamage);
-        interactionSettings.addSetting(minDamage);
-        interactionSettings.addSetting(maxSelf);
-        interactionSettings.addSetting(range);
-        interactionSettings.addSetting(noSuicide);
-        interactionSettings.addSetting(smart);
-        interactionSettings.addSetting(place);
-        interactionSettings.addSetting(placeDelay);
-        interactionSettings.addSetting(autoSwap);
-        interactionSettings.addSetting(afterBreak);
-        interactionSettings.addSetting(breakSetting);
-        interactionSettings.addSetting(breakDelay);
-        interactionSettings.addSetting(minAge);
-        interactionSettings.addSetting(breakRemove);
-        interactionSettings.addSetting(onlyTick);
-
-        // Add group to module
-        this.addSetting(interactionSettings);
-
-        // Register settings with SettingManager
-        SettingManager.registerSetting(interactionSettings);
-       // SettingManager.registerSetting(autoMinDamage);
-        SettingManager.registerSetting(minDamage);
-        SettingManager.registerSetting(maxSelf);
-        SettingManager.registerSetting(range);
-        SettingManager.registerSetting(noSuicide);
-        SettingManager.registerSetting(smart);
-        SettingManager.registerSetting(place);
-        SettingManager.registerSetting(placeDelay);
-        SettingManager.registerSetting(autoSwap);
-        SettingManager.registerSetting(afterBreak);
-        SettingManager.registerSetting(breakSetting);
-        SettingManager.registerSetting(breakDelay);
-        SettingManager.registerSetting(minAge);
-        SettingManager.registerSetting(breakRemove);
-        SettingManager.registerSetting(onlyTick);
-
-        // Add settings to calculation group
-       // calculationSettings.addSetting(thread);
-        calculationSettings.addSetting(doCrystal);
-        calculationSettings.addSetting(lite);
-        calculationSettings.addSetting(predictTicks);
-        calculationSettings.addSetting(terrainIgnore);
-
-        // Add group to module
-        this.addSetting(calculationSettings);
-
-        // Register settings with SettingManager
-        SettingManager.registerSetting(calculationSettings);
-     //   SettingManager.registerSetting(thread);
-        SettingManager.registerSetting(doCrystal);
-        SettingManager.registerSetting(lite);
-        SettingManager.registerSetting(predictTicks);
-        SettingManager.registerSetting(terrainIgnore);
-
-        // Add settings to miscellaneous group
-        miscSettings.addSetting(ignoreMine);
-        miscSettings.addSetting(constantProgress);
-        miscSettings.addSetting(antiSurround);
-        miscSettings.addSetting(antiSurroundMax);
-        miscSettings.addSetting(slowPlace);
-        miscSettings.addSetting(slowDelay);
-        miscSettings.addSetting(slowMinDamage);
-        miscSettings.addSetting(forcePlace);
-        miscSettings.addSetting(forceMaxHealth);
-        miscSettings.addSetting(forceMin);
-        miscSettings.addSetting(armorBreaker);
-        miscSettings.addSetting(maxDurable);
-        miscSettings.addSetting(armorBreakerDamage);
-        miscSettings.addSetting(hurtTime);
-        miscSettings.addSetting(waitHurt);
-        miscSettings.addSetting(syncTimeout);
-       // miscSettings.addSetting(forceWeb);
-       // miscSettings.addSetting(airPlace);
-       // miscSettings.addSetting(replace);
-
-        // Add group to module
-        this.addSetting(miscSettings);
-
-        SettingManager.registerSetting(targetRender);
-        SettingManager.registerSetting(targetColor);
-        SettingManager.registerSetting(posRender);
-        SettingManager.registerSetting(posColor);
-        SettingManager.registerSetting(lineWidth);
-
-        renderSettings.addSetting(targetRender);
-        renderSettings.addSetting(targetColor);
-        renderSettings.addSetting(posRender);
-        renderSettings.addSetting(posColor);
-        renderSettings.addSetting(lineWidth);
-
-        this.addSetting(renderSettings);
-
-        // Register settings with SettingManager
-        SettingManager.registerSetting(miscSettings);
-        SettingManager.registerSetting(ignoreMine);
-        SettingManager.registerSetting(constantProgress);
-        SettingManager.registerSetting(antiSurround);
-        SettingManager.registerSetting(antiSurroundMax);
-        SettingManager.registerSetting(slowPlace);
-        SettingManager.registerSetting(slowDelay);
-        SettingManager.registerSetting(slowMinDamage);
-        SettingManager.registerSetting(forcePlace);
-        SettingManager.registerSetting(forceMaxHealth);
-        SettingManager.registerSetting(forceMin);
-        SettingManager.registerSetting(armorBreaker);
-        SettingManager.registerSetting(maxDurable);
-        SettingManager.registerSetting(armorBreakerDamage);
-        SettingManager.registerSetting(hurtTime);
-        SettingManager.registerSetting(waitHurt);
-        SettingManager.registerSetting(syncTimeout);
-    //    SettingManager.registerSetting(forceWeb);
-    //    SettingManager.registerSetting(airPlace);
-    //    SettingManager.registerSetting(replace);
-    }
-
-    //Todo: Commented out features for potential future modules are here don't delete
-
+    private enum SwapMode { Off, Normal, Silent, Inventory }
+
+    // Settings groups
+    private final SettingGroup sgGeneral = group("autocrystal_general", "General", "General AutoCrystal settings");
+    private final SettingGroup sgRotation = group("autocrystal_rotation", "Rotation", "Rotation settings");
+    private final SettingGroup sgInteraction = group("autocrystal_interaction", "Interaction", "Placement & breaking settings");
+    private final SettingGroup sgCalculation = group("autocrystal_calculation", "Calculation", "Damage & prediction");
+    private final SettingGroup sgMisc = group("autocrystal_misc", "Miscellaneous", "Specialized combat options");
+    private final SettingGroup sgRender = group("autocrystal_render", "Render", "ESP settings");
+
+    // General
+    private final BooleanSetting breakOnlyHasCrystal = bool(sgGeneral, "autocrystal_only_hold", "Only Hold", "Only break when holding a crystal", true);
+    private final EnumSetting<SwingSide> swingMode = enum_(sgGeneral, "autocrystal_swing", "Swing", "Hand to swing", SwingSide.All);
+    private final BooleanSetting eatingPause = bool(sgGeneral, "autocrystal_eating_pause", "Eating Pause", "Pause while eating", true);
+    private final FloatSetting switchCooldown = float_(sgGeneral, "autocrystal_switch_pause", "Switch Pause", "Cooldown after switch (ms)", 100f, 0f, 1000f, 10f);
+    private final FloatSetting targetRange = float_(sgGeneral, "autocrystal_target_range", "Target Range", "Max target distance", 12f, 0f, 20f, 0.5f);
+    private final FloatSetting updateDelay = float_(sgGeneral, "autocrystal_update_delay", "Update Delay", "Calc interval (ms)", 50f, 0f, 1000f, 10f);
+    // wallRange is kept for backward compatibility but no longer used internally – replaced by placeWallRange / breakWallRange
+    private final FloatSetting wallRange = float_(sgGeneral, "autocrystal_wall_range", "Wall Range", "Max distance through walls (legacy)", 6f, 0f, 6f, 0.1f);
+
+    // Rotation
+    private final BooleanSetting rotate = bool(sgRotation, "autocrystal_rotate", "Rotate", "Rotate towards crystals", true);
+    private final BooleanSetting onBreak = bool(sgRotation, "autocrystal_on_break", "On Break", "Only rotate when breaking", false);
+    private final FloatSetting yOffset = float_(sgRotation, "autocrystal_y_offset", "Y Offset", "Vertical rotation offset", 0.05f, 0f, 1f, 0.01f);
+    private final BooleanSetting yawStep = bool(sgRotation, "autocrystal_yaw_step", "Yaw Step", "Gradual rotation", false);
+    private final FloatSetting steps = float_(sgRotation, "autocrystal_steps", "Steps", "Yaw step size", 0.8f, 0f, 1f, 0.1f);
+    private final BooleanSetting checkFov = bool(sgRotation, "autocrystal_only_looking", "Only Looking", "Only crystals in FOV", false);
+    private final FloatSetting fov = float_(sgRotation, "autocrystal_fov", "FOV", "FOV angle (degrees)", 30f, 0f, 50f, 1f);
+    private final FloatSetting priority = float_(sgRotation, "autocrystal_priority", "Priority", "Rotation priority", 10f, 0f, 100f, 1f);
+
+    // Interaction (damage + place/break)
+    private final FloatSetting minDamage = float_(sgInteraction, "autocrystal_min", "Min", "Min target damage", 5f, 0f, 36f, 0.5f);
+    private final FloatSetting maxSelf = float_(sgInteraction, "autocrystal_self", "Self", "Max self damage", 12f, 0f, 36f, 0.5f);
+    private final FloatSetting range = float_(sgInteraction, "autocrystal_range", "Range", "Place range", 5f, 0f, 6f, 0.1f);
+    private final FloatSetting placeWallRange = float_(sgInteraction, "autocrystal_place_wall_range", "Place Wall Range", "Max place distance through walls", 2.5f, 0f, 6f, 0.1f);
+    private final FloatSetting breakWallRange = float_(sgInteraction, "autocrystal_break_wall_range", "Break Wall Range", "Max break distance through walls", 2.5f, 0f, 6f, 0.1f);
+    private final FloatSetting noSuicide = float_(sgInteraction, "autocrystal_no_suicide", "No Suicide", "Health buffer", 3f, 0f, 10f, 0.5f);
+    private final BooleanSetting smart = bool(sgInteraction, "autocrystal_smart", "Smart", "Optimize placement", true);
+    private final BooleanSetting place = bool(sgInteraction, "autocrystal_place", "Place", "Place crystals", true);
+    private final FloatSetting placeDelay = float_(sgInteraction, "autocrystal_place_delay", "Place Delay", "Delay between placements (ms)", 150f, 0f, 1000f, 10f);
+    private final EnumSetting<SwapMode> autoSwap = enum_(sgInteraction, "autocrystal_auto_swap", "Auto Swap", "Swap mode", SwapMode.Normal);
+    private final BooleanSetting afterBreak = bool(sgInteraction, "autocrystal_after_break", "After Break", "Place after breaking", true);
+    private final BooleanSetting breakSetting = bool(sgInteraction, "autocrystal_break", "Break", "Break crystals", true);
+    private final FloatSetting breakDelay = float_(sgInteraction, "autocrystal_break_delay", "Break Delay", "Delay between breaks (ms)", 150f, 0f, 1000f, 10f);
+    private final FloatSetting minAge = float_(sgInteraction, "autocrystal_min_age", "Min Age", "Min crystal age (ticks)", 0f, 0f, 20f, 1f);
+    private final BooleanSetting breakRemove = bool(sgInteraction, "autocrystal_remove", "Memory Remove", "Remove crystal client-side", false);
+    private final BooleanSetting onlyTick = bool(sgInteraction, "autocrystal_only_tick", "Only Tick", "Only operate on ticks", false);
+
+    // Calculation
+    private final BooleanSetting doCrystal = bool(sgCalculation, "autocrystal_thread_interact", "Thread Interact", "Interact in calc thread", false);
+    private final BooleanSetting lite = bool(sgCalculation, "autocrystal_less_cpu", "Less CPU", "Optimize CPU usage", false);
+    private final FloatSetting predictTicks = float_(sgCalculation, "autocrystal_predict", "Predict", "Prediction ticks", 4f, 0f, 10f, 1f);
+    private final BooleanSetting terrainIgnore = bool(sgCalculation, "autocrystal_terrain_ignore", "Terrain Ignore", "Ignore terrain in damage calc", true);
+
+    // Misc
+    private final BooleanSetting ignoreMine = bool(sgMisc, "autocrystal_ignore_mine", "Ignore Mine", "Ignore mined blocks", true);
+    private final FloatSetting constantProgress = float_(sgMisc, "autocrystal_progress", "Progress", "Mining progress threshold (%)", 90f, 0f, 100f, 1f);
+    private final BooleanSetting antiSurround = bool(sgMisc, "autocrystal_anti_surround", "Anti Surround", "Break enemy surrounds", false);
+    private final FloatSetting antiSurroundMax = float_(sgMisc, "autocrystal_when_lower", "When Lower", "Max damage for anti-surround", 5f, 0f, 36f, 0.5f);
+    private final BooleanSetting slowPlace = bool(sgMisc, "autocrystal_timeout", "Timeout", "Timeout after no target", true);
+    private final FloatSetting slowDelay = float_(sgMisc, "autocrystal_timeout_delay", "Timeout Delay", "Timeout duration (ms)", 200f, 0f, 2000f, 50f);
+    private final FloatSetting slowMinDamage = float_(sgMisc, "autocrystal_timeout_min", "Timeout Override HP", "Min damage to bypass timeout", 1.5f, 0f, 36f, 0.5f);
+    private final BooleanSetting forcePlace = bool(sgMisc, "autocrystal_force_place", "Force Place", "Force place on low HP", true);
+    private final FloatSetting forceMaxHealth = float_(sgMisc, "autocrystal_lower_than", "Lower Than", "Target HP to force", 7f, 0f, 36f, 1f);
+    private final FloatSetting forceMin = float_(sgMisc, "autocrystal_force_min", "Force Min HP", "Min damage for forced place", 1.5f, 0f, 36f, 0.5f);
+    private final BooleanSetting armorBreaker = bool(sgMisc, "autocrystal_armor_breaker", "Armor Breaker", "Target low durability armor", true);
+    private final FloatSetting maxDurable = float_(sgMisc, "autocrystal_max_durable", "Max Durable", "Max durability % to target", 8f, 0f, 100f, 1f);
+    private final FloatSetting armorBreakerDamage = float_(sgMisc, "autocrystal_breaker_min", "Breaker Min", "Min damage for armor break", 3f, 0f, 36f, 0.5f);
+    private final FloatSetting hurtTime = float_(sgMisc, "autocrystal_hurt_time", "Hurt Time", "Max hurt time (ticks)", 10f, 0f, 10f, 1f);
+    private final FloatSetting waitHurt = float_(sgMisc, "autocrystal_wait_hurt", "Wait Hurt", "Delay after hurt (ticks)", 10f, 0f, 10f, 1f);
+    private final FloatSetting syncTimeout = float_(sgMisc, "autocrystal_wait_timeout", "Wait Timeout", "Max sync wait (ms)", 500f, 0f, 2000f, 10f);
+
+    // Render
+    private final BooleanSetting targetRender = bool(sgRender, "autocrystal_targetrender", "TargetESP", "Render target box", true);
+    private final ColorSetting targetColor = color(sgRender, "autocrystal_targetcolor", "Target Color", "", new Color(0, 255, 0, 75));
+    private final BooleanSetting posRender = bool(sgRender, "autocrystal_posrender", "PlaceESP", "Render placement box", true);
+    private final ColorSetting posColor = color(sgRender, "autocrystal_poscolor", "Placement Color", "", new Color(255, 0, 0, 75));
+    private final FloatSetting lineWidth = float_(sgRender, "autocrystal_line_width", "Line Width", "Outline width", 1.5f, 0.1f, 5f, 0.1f);
+
+    // Legacy public fields
+    public static BlockPos crystalPos;
     public PlayerEntity displayTarget;
+    public final BooleanSetting replace = bool(sgMisc, "autocrystal_replace", "Web Replace", "Replace blocks with crystals", false);
     public float breakDamage, tempDamage, lastDamage;
     public Vec3d directionVec = null;
+
     private BlockPos tempPos, breakPos, syncPos;
     private Vec3d placeVec3d;
-    public static BlockPos crystalPos;
     public final CacheTimer lastBreakTimer = new CacheTimer();
     private final CacheTimer placeTimer = new CacheTimer(), noPosTimer = new CacheTimer(), switchTimer = new CacheTimer(), calcDelay = new CacheTimer();
+    private final CacheTimer syncTimer = new CacheTimer();
+
+    // Helper methods for clean registration
+    private SettingGroup group(String id, String name, String desc) {
+        SettingGroup g = SettingGroup.Builder.builder().id(id).displayName(name).description(desc).build();
+        this.addSetting(g);
+        SettingManager.registerSetting(g);
+        return g;
+    }
+
+    private FloatSetting float_(SettingGroup g, String id, String name, String desc, float def, float min, float max, float step) {
+        FloatSetting s = FloatSetting.builder().id(id).displayName(name).description(desc).defaultValue(def).minValue(min).maxValue(max).step(step).build();
+        g.addSetting(s);
+        SettingManager.registerSetting(s);
+        return s;
+    }
+
+    private BooleanSetting bool(SettingGroup g, String id, String name, String desc, boolean def) {
+        BooleanSetting s = BooleanSetting.builder().id(id).displayName(name).description(desc).defaultValue(def).build();
+        g.addSetting(s);
+        SettingManager.registerSetting(s);
+        return s;
+    }
+
+    private <T extends Enum<T>> EnumSetting<T> enum_(SettingGroup g, String id, String name, String desc, T def) {
+        EnumSetting<T> s = EnumSetting.<T>builder().id(id).displayName(name).description(desc).defaultValue(def).build();
+        g.addSetting(s);
+        SettingManager.registerSetting(s);
+        return s;
+    }
+
+    private ColorSetting color(SettingGroup g, String id, String name, String desc, Color def) {
+        ColorSetting s = ColorSetting.builder().id(id).displayName(name).description(desc).defaultValue(def).build();
+        g.addSetting(s);
+        SettingManager.registerSetting(s);
+        return s;
+    }
+
+    public CrystalAura() {
+        super("CrystalAura");
+        this.setCategory(Category.of("Combat"));
+        this.setDescription("Destroys and places endcrystals to kill opponents");
+    }
 
     public static boolean canSee(Vec3d from, Vec3d to) {
         HitResult result = MC.world.raycast(new RaycastContext(from, to, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, MC.player));
         return result == null || result.getType() == HitResult.Type.MISS;
-    }
-
-    @Override
-    public void onDisable() {
-        Payload.getInstance().eventManager.RemoveListener(TickListener.class, this);
-        Payload.getInstance().eventManager.RemoveListener(Render3DListener.class, this);
-        Payload.getInstance().eventManager.RemoveListener(LookAtListener.class, this);
-        Payload.getInstance().eventManager.RemoveListener(SendPacketListener.class, this);
-        Payload.getInstance().eventManager.RemoveListener(SendMovementPacketListener.class, this);
-
-        crystalPos = null;
-        tempPos = null;
     }
 
     @Override
@@ -845,7 +199,6 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
         Payload.getInstance().eventManager.AddListener(LookAtListener.class, this);
         Payload.getInstance().eventManager.AddListener(SendPacketListener.class, this);
         Payload.getInstance().eventManager.AddListener(SendMovementPacketListener.class, this);
-
         crystalPos = null;
         tempPos = null;
         breakPos = null;
@@ -855,35 +208,30 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
     }
 
     @Override
-    public void onToggle() {
-
+    public void onDisable() {
+        Payload.getInstance().eventManager.RemoveListener(TickListener.class, this);
+        Payload.getInstance().eventManager.RemoveListener(Render3DListener.class, this);
+        Payload.getInstance().eventManager.RemoveListener(LookAtListener.class, this);
+        Payload.getInstance().eventManager.RemoveListener(SendPacketListener.class, this);
+        Payload.getInstance().eventManager.RemoveListener(SendMovementPacketListener.class, this);
+        crystalPos = null;
+        tempPos = null;
     }
+
+    @Override public void onToggle() {}
 
     @Override
     public void onTick(TickEvent.Pre event) {
-
-        if (Payload.getInstance().moduleManager.autoeat.isEating()) {
-            return;
-        }
-
-        if (!thread.getValue()) {
-            updateCrystalPos();
-        }
-
+        if (Payload.getInstance().moduleManager.autoeat.isEating()) return;
+        if (!threadUnused()) updateCrystalPos();
         doInteract();
     }
-    
-    @Override
-    public void onTick(TickEvent.Post event) {
 
-    }
+    @Override public void onTick(TickEvent.Post event) {}
 
     @Override
     public void onLook(LookAtEvent event) {
-        if (Payload.getInstance().moduleManager.autoeat.isEating()) {
-            return;
-        }
-
+        if (Payload.getInstance().moduleManager.autoeat.isEating()) return;
         if (rotate.getValue() && yawStep.getValue() && directionVec != null && !noPosTimer.passedMs(1000)) {
             event.setTarget(directionVec, steps.getValue(), priority.getValue());
         }
@@ -892,29 +240,15 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
     @Override
     public void onRender(Render3DEvent event) {
         if (nullCheck()) return;
-
-        //if (!thread.getValue()) updateCrystalPos();
-
-        if (Payload.getInstance().moduleManager.autoeat.isEating()) {
-            return;
-        }
-
+        if (Payload.getInstance().moduleManager.autoeat.isEating()) return;
         if (!onlyTick.getValue()) doInteract();
 
         BlockPos cpos = crystalPos != null ? syncPos : crystalPos;
-
-        if (cpos != null) {
-            placeVec3d = cpos.down().toCenterPos();
-        }
-        else {
-            placeVec3d = null;
-        }
+        placeVec3d = cpos != null ? cpos.down().toCenterPos() : null;
 
         if (posRender.getValue() && placeVec3d != null) {
-                Box cbox = new Box(placeVec3d, placeVec3d);
-                cbox = cbox.expand(0.5);
-
-                Render3D.draw3DBox(event.GetMatrix(), event.getCamera(),cbox, posColor.getValue(), lineWidth.getValue());
+            Box cbox = new Box(placeVec3d, placeVec3d).expand(0.5);
+            Render3D.draw3DBox(event.GetMatrix(), event.getCamera(), cbox, posColor.getValue(), lineWidth.getValue());
         }
 
         if (targetRender.getValue() && displayTarget != null && !noPosTimer.passed(500)) {
@@ -923,43 +257,37 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
     }
 
     public void doRender(float partialTicks, Entity entity, Render3DEvent event) {
-
         if (targetRender.getValue()) {
-            Render3D.draw3DBox(event.GetMatrix(), event.getCamera(),((IEntity) entity).getDimensions().getBoxAt(new Vec3d(Interpolation.interpolate(entity.lastRenderX, entity.getX(), partialTicks), Interpolation.interpolate(entity.lastRenderY, entity.getY(), partialTicks), Interpolation.interpolate(entity.lastRenderZ, entity.getZ(), partialTicks))).expand(0, 0.1, 0)
-                    , targetColor.getValue(), lineWidth.getValue());
+            Vec3d pos = new Vec3d(
+                Interpolation.interpolate(entity.lastRenderX, entity.getX(), partialTicks),
+                Interpolation.interpolate(entity.lastRenderY, entity.getY(), partialTicks),
+                Interpolation.interpolate(entity.lastRenderZ, entity.getZ(), partialTicks)
+            );
+            Render3D.draw3DBox(event.GetMatrix(), event.getCamera(),
+                ((IEntity) entity).getDimensions().getBoxAt(pos).expand(0, 0.1, 0),
+                targetColor.getValue(), lineWidth.getValue());
         }
-
-        //Box -> Render3DUtil.draw3DBox(matrixStack, ((IEntity) entity).getDimensions().getBoxAt(new Vec3d(MathUtil.interpolate(entity.lastRenderX, entity.getX(), partialTicks), MathUtil.interpolate(entity.lastRenderY, entity.getY(), partialTicks), MathUtil.interpolate(entity.lastRenderZ, entity.getZ(), partialTicks))).expand(0, 0.1, 0), ColorUtil.fadeColor(targetColor.getValue(), hitColor.getValue(), animation.get(0, animationTime.getValueInt(), ease.getValue())), false, true);
     }
 
     @Override
     public void onSendPacket(SendPacketEvent event) {
         if (event.isCancelled()) return;
-
-        if (event.GetPacket() instanceof UpdateSelectedSlotC2SPacket) {
-            switchTimer.reset();
-        }
+        if (event.GetPacket() instanceof UpdateSelectedSlotC2SPacket) switchTimer.reset();
     }
 
     @Override
     public void onSendMovementPacket(SendMovementPacketEvent.Pre event) {
-        if (Payload.getInstance().moduleManager.autoeat.isEating()) {
-            return;
-        }
-
-        if (!thread.getValue()) updateCrystalPos();
+        if (Payload.getInstance().moduleManager.autoeat.isEating()) return;
+        if (!threadUnused()) updateCrystalPos();
         if (!onlyTick.getValue()) doInteract();
     }
 
-    @Override
-    public void onSendMovementPacket(SendMovementPacketEvent.Post event) {
+    @Override public void onSendMovementPacket(SendMovementPacketEvent.Post event) {}
 
-    }
+    private boolean threadUnused() { return false; }
 
     private void doInteract() {
-        if (shouldReturn()) {
-            return;
-        }
+        if (shouldReturn()) return;
         if (breakPos != null) {
             doBreak(breakPos);
             breakPos = null;
@@ -976,26 +304,33 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
     }
 
     private boolean shouldReturn() {
-        if (eatingPause.getValue() && MC.player.isUsingItem()) { // || Blink.INSTANCE.isOn() && Blink.INSTANCE.pauseModule.getValue()) {
+        if (eatingPause.getValue() && MC.player.isUsingItem()) {
             lastBreakTimer.reset();
             return true;
         }
-        /*
-        if (preferAnchor.getValue() && AutoAnchor.INSTANCE.currentPos != null) {
-            lastBreakTimer.reset();
-            return true;
-        }
-
-         */
         return false;
     }
 
-    public long getLong(float hello) {
-        double ok = (double) hello;
-        long fog = (long) ok;
-
-        return fog;
+    // --------------- Wall-range helpers ---------------
+    private boolean isPlaceInRange(BlockPos baseBlock) {
+        double dist = MC.player.getEyePos().distanceTo(baseBlock.toCenterPos().add(0, -0.5, 0));
+        // Use click-side raycast to determine visibility
+        if (OtherBlockUtils.getClickSide(baseBlock) != null) {
+            return dist <= range.getValue();
+        } else {
+            return dist <= placeWallRange.getValue();
+        }
     }
+
+    private boolean isBreakInRange(EndCrystalEntity crystal) {
+        double dist = MC.player.getEyePos().distanceTo(crystal.getPos());
+        if (MC.player.canSee(crystal)) {
+            return dist <= range.getValue();
+        } else {
+            return dist <= breakWallRange.getValue();
+        }
+    }
+    // ------------------------------------------------
 
     private void getCrystalPos() {
         if (nullCheck()) {
@@ -1003,7 +338,7 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
             tempPos = null;
             return;
         }
-        if (!calcDelay.passedMs(getLong(updateDelay.getValue()))) return;
+        if (!calcDelay.passedMs((long)(float)updateDelay.getValue())) return;
         if (breakOnlyHasCrystal.getValue() && !MC.player.getMainHandStack().getItem().equals(Items.END_CRYSTAL) && !MC.player.getOffHandStack().getItem().equals(Items.END_CRYSTAL) && !findCrystal()) {
             lastBreakTimer.reset();
             tempPos = null;
@@ -1024,113 +359,94 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
         PlayerAndPredict self = new PlayerAndPredict(MC.player);
         if (list.isEmpty()) {
             lastBreakTimer.reset();
-        } else {
-            for (BlockPos pos : OtherBlockUtils.getSphere((float) range.getValue() + 1)) {
-                if (behindWall(pos)) continue;
-                if (MC.player.getEyePos().distanceTo(pos.toCenterPos().add(0, -0.5, 0)) > range.getValue()) {
-                    continue;
-                }
-                if (!canTouch(pos.down())) continue;
-                if (!canPlaceCrystal(pos, true, false)) continue;
-                for (PlayerAndPredict pap : list) {
-                    if (lite.getValue() && liteCheck(pos.toCenterPos().add(0, -0.5, 0), pap.predict.getPos())) {
-                        continue;
+            return;
+        }
+        for (BlockPos pos : OtherBlockUtils.getSphere((float) range.getValue() + 1)) {
+            if (behindWall(pos)) continue;               // still uses the old wallRange inside behindWall, but we'll update behindWall to use placeWallRange
+            if (!isPlaceInRange(pos.down())) continue;   // NEW: wall‑aware range check
+            if (!canTouch(pos.down())) continue;
+            if (!canPlaceCrystal(pos, true, false)) continue;
+            for (PlayerAndPredict pap : list) {
+                if (lite.getValue() && liteCheck(pos.toCenterPos().add(0, -0.5, 0), pap.predict.getPos())) continue;
+                float damage = calculateDamage(pos, pap.player, pap.predict);
+                if (tempPos == null || damage > tempDamage) {
+                    float selfDamage = calculateDamage(pos, self.player, self.predict);
+                    if (selfDamage > maxSelf.getValue()) continue;
+                    if (noSuicide.getValue() > 0 && selfDamage > MC.player.getHealth() + MC.player.getAbsorptionAmount() - noSuicide.getValue()) continue;
+                    if (damage < EntityUtil.getHealth(pap.player)) {
+                        if (damage < getDamage(pap.player)) continue;
+                        if (smart.getValue()) {
+                            if (getDamage(pap.player) == forceMin.getValue()) {
+                                if (damage < selfDamage - 2.5) continue;
+                            } else {
+                                if (damage < selfDamage) continue;
+                            }
+                        }
                     }
-                    float damage = calculateDamage(pos, pap.player, pap.predict);
-                    if (tempPos == null || damage > tempDamage) {
-                        float selfDamage = calculateDamage(pos, self.player, self.predict);
+                    displayTarget = pap.player;
+                    tempPos = pos;
+                    tempDamage = damage;
+                }
+            }
+        }
+        for (Entity entity : MC.world.getEntities()) {
+            if (entity instanceof EndCrystalEntity crystal) {
+                if (!isBreakInRange(crystal)) continue;   // NEW: uses breakWallRange for non‑visible
+                for (PlayerAndPredict pap : list) {
+                    float damage = calculateDamage(crystal.getPos(), pap.player, pap.predict);
+                    if (breakPos == null || damage > breakDamage) {
+                        float selfDamage = calculateDamage(crystal.getPos(), self.player, self.predict);
                         if (selfDamage > maxSelf.getValue()) continue;
-                        if (noSuicide.getValue() > 0 && selfDamage > MC.player.getHealth() + MC.player.getAbsorptionAmount() - noSuicide.getValue())
-                            continue;
+                        if (noSuicide.getValue() > 0 && selfDamage > MC.player.getHealth() + MC.player.getAbsorptionAmount() - noSuicide.getValue()) continue;
                         if (damage < EntityUtil.getHealth(pap.player)) {
                             if (damage < getDamage(pap.player)) continue;
                             if (smart.getValue()) {
                                 if (getDamage(pap.player) == forceMin.getValue()) {
-                                    if (damage < selfDamage - 2.5) {
-                                        continue;
-                                    }
+                                    if (damage < selfDamage - 2.5) continue;
                                 } else {
-                                    if (damage < selfDamage) {
-                                        continue;
-                                    }
+                                    if (damage < selfDamage) continue;
                                 }
                             }
                         }
-                        displayTarget = pap.player;
-                        tempPos = pos;
-                        tempDamage = damage;
-                    }
-                }
-            }
-            for (Entity entity : MC.world.getEntities()) {
-                if (entity instanceof EndCrystalEntity crystal) {
-                    if (!MC.player.canSee(crystal) && MC.player.getEyePos().distanceTo(crystal.getPos()) > wallRange.getValue())
-                        continue;
-                    if (MC.player.getEyePos().distanceTo(crystal.getPos()) > range.getValue()) {
-                        continue;
-                    }
-                    for (PlayerAndPredict pap : list) {
-                        float damage = calculateDamage(crystal.getPos(), pap.player, pap.predict);
-                        if (breakPos == null || damage > breakDamage) {
-                            float selfDamage = calculateDamage(crystal.getPos(), self.player, self.predict);
-                            if (selfDamage > maxSelf.getValue()) continue;
-                            if (noSuicide.getValue() > 0 && selfDamage > MC.player.getHealth() + MC.player.getAbsorptionAmount() - noSuicide.getValue())
-                                continue;
-                            if (damage < EntityUtil.getHealth(pap.player)) {
-                                if (damage < getDamage(pap.player)) continue;
-                                if (smart.getValue()) {
-                                    if (getDamage(pap.player) == forceMin.getValue()) {
-                                        if (damage < selfDamage - 2.5) {
-                                            continue;
-                                        }
-                                    } else {
-                                        if (damage < selfDamage) {
-                                            continue;
-                                        }
-                                    }
-                                }
-                            }
-                            breakPos = new BlockPosX(crystal.getPos());
-                            if (damage > tempDamage) {
-                                displayTarget = pap.player;
-                                //tempDamage = damage;
-                            }
+                        breakPos = new BlockPosX(crystal.getPos());
+                        if (damage > tempDamage) {
+                            displayTarget = pap.player;
                         }
                     }
                 }
             }
-            if (doCrystal.getValue() && breakPos != null && !shouldReturn) {
-                doBreak(breakPos);
-                breakPos = null;
-            }
-            if (antiSurround.getValue() && PacketMine.getBreakPos() != null && PacketMine.progress >= 0.9 && !OtherBlockUtils.hasEntity(PacketMine.getBreakPos(), false)) {
-                if (tempDamage <= antiSurroundMax.getValue()) {
-                    for (PlayerAndPredict pap : list) {
-                        for (Direction i : Direction.values()) {
-                            if (i == Direction.DOWN || i == Direction.UP) continue;
-                            BlockPos offsetPos = new BlockPosX(pap.player.getPos().add(0, 0.5, 0)).offset(i);
-                            if (offsetPos.equals(PacketMine.getBreakPos())) {
-                                if (canPlaceCrystal(offsetPos.offset(i), false, false)) {
-                                    float selfDamage = calculateDamage(offsetPos.offset(i), self.player, self.predict);
+        }
+        if (doCrystal.getValue() && breakPos != null && !shouldReturn) {
+            doBreak(breakPos);
+            breakPos = null;
+        }
+        if (antiSurround.getValue() && PacketMine.getBreakPos() != null && PacketMine.progress >= 0.9 && !OtherBlockUtils.hasEntity(PacketMine.getBreakPos(), false)) {
+            if (tempDamage <= antiSurroundMax.getValue()) {
+                for (PlayerAndPredict pap : list) {
+                    for (Direction i : Direction.values()) {
+                        if (i == Direction.DOWN || i == Direction.UP) continue;
+                        BlockPos offsetPos = new BlockPosX(pap.player.getPos().add(0, 0.5, 0)).offset(i);
+                        if (offsetPos.equals(PacketMine.getBreakPos())) {
+                            if (canPlaceCrystal(offsetPos.offset(i), false, false)) {
+                                float selfDamage = calculateDamage(offsetPos.offset(i), self.player, self.predict);
+                                if (selfDamage < maxSelf.getValue() && !(noSuicide.getValue() > 0 && selfDamage > MC.player.getHealth() + MC.player.getAbsorptionAmount() - noSuicide.getValue())) {
+                                    tempPos = offsetPos.offset(i);
+                                    if (doCrystal.getValue() && tempPos != null && !shouldReturn) {
+                                        doCrystal(tempPos);
+                                    }
+                                    return;
+                                }
+                            }
+                            for (Direction ii : Direction.values()) {
+                                if (ii == Direction.DOWN || ii == i) continue;
+                                if (canPlaceCrystal(offsetPos.offset(ii), false, false)) {
+                                    float selfDamage = calculateDamage(offsetPos.offset(ii), self.player, self.predict);
                                     if (selfDamage < maxSelf.getValue() && !(noSuicide.getValue() > 0 && selfDamage > MC.player.getHealth() + MC.player.getAbsorptionAmount() - noSuicide.getValue())) {
-                                        tempPos = offsetPos.offset(i);
+                                        tempPos = offsetPos.offset(ii);
                                         if (doCrystal.getValue() && tempPos != null && !shouldReturn) {
                                             doCrystal(tempPos);
                                         }
                                         return;
-                                    }
-                                }
-                                for (Direction ii : Direction.values()) {
-                                    if (ii == Direction.DOWN || ii == i) continue;
-                                    if (canPlaceCrystal(offsetPos.offset(ii), false, false)) {
-                                        float selfDamage = calculateDamage(offsetPos.offset(ii), self.player, self.predict);
-                                        if (selfDamage < maxSelf.getValue() && !(noSuicide.getValue() > 0 && selfDamage > MC.player.getHealth() + MC.player.getAbsorptionAmount() - noSuicide.getValue())) {
-                                            tempPos = offsetPos.offset(ii);
-                                            if (doCrystal.getValue() && tempPos != null && !shouldReturn) {
-                                                doCrystal(tempPos);
-                                            }
-                                            return;
-                                        }
                                     }
                                 }
                             }
@@ -1148,12 +464,11 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
         BlockPos obsPos = pos.down();
         BlockPos boost = obsPos.up();
         BlockPos boost2 = boost.up();
-
         return (getBlock(obsPos) == Blocks.BEDROCK || getBlock(obsPos) == Blocks.OBSIDIAN)
                 && OtherBlockUtils.getClickSideStrict(obsPos) != null
                 && noEntityBlockCrystal(boost, ignoreCrystal, ignoreItem)
                 && noEntityBlockCrystal(boost2, ignoreCrystal, ignoreItem)
-                && (MC.world.isAir(boost) || hasCrystal(boost) && getBlock(boost) == Blocks.FIRE)
+                && (MC.world.isAir(boost) || (hasCrystal(boost) && getBlock(boost) == Blocks.FIRE))
                 && (!Payload.getInstance().moduleManager.antiCheat.lowVersion.getValue() || MC.world.isAir(boost2));
     }
 
@@ -1163,13 +478,11 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
 
     private boolean noEntityBlockCrystal(BlockPos pos, boolean ignoreCrystal, boolean ignoreItem) {
         for (Entity entity : OtherBlockUtils.getEntities(new Box(pos))) {
-            if (!entity.isAlive() || ignoreItem && entity instanceof ItemEntity || entity instanceof ArmorStandEntity && AntiCheat.INSTANCE.obsMode.getValue())
+            if (!entity.isAlive() || (ignoreItem && entity instanceof ItemEntity) || (entity instanceof ArmorStandEntity && AntiCheat.INSTANCE.obsMode.getValue()))
                 continue;
             if (entity instanceof EndCrystalEntity) {
                 if (!ignoreCrystal) return false;
-                if (MC.player.canSee(entity) || MC.player.getEyePos().distanceTo(entity.getPos()) <= wallRange.getValue()) {
-                    continue;
-                }
+                if (MC.player.canSee(entity) || MC.player.getEyePos().distanceTo(entity.getPos()) <= breakWallRange.getValue()) continue;
             }
             return false;
         }
@@ -1177,16 +490,11 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
     }
 
     public boolean behindWall(BlockPos pos) {
-        Vec3d testVec;
-        /*if (CombatSetting.INSTANCE.lowVersion.getValue()) {
-            testVec = new Vec3d(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
-        } else {
-            testVec = new Vec3d(pos.getX() + 0.5, pos.getY() + 2 * 0.85, pos.getZ() + 0.5);
-        }*/
-        testVec = new Vec3d(pos.getX() + 0.5, pos.getY() + 2 * 0.85, pos.getZ() + 0.5);
+        // Now uses placeWallRange instead of the old wallRange
+        Vec3d testVec = new Vec3d(pos.getX() + 0.5, pos.getY() + 2 * 0.85, pos.getZ() + 0.5);
         HitResult result = MC.world.raycast(new RaycastContext(EntityUtil.getEyesPos(), testVec, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, MC.player));
         if (result == null || result.getType() == HitResult.Type.MISS) return false;
-        return MC.player.getEyePos().distanceTo(pos.toCenterPos().add(0, -0.5, 0)) > wallRange.getValue();
+        return MC.player.getEyePos().distanceTo(pos.toCenterPos().add(0, -0.5, 0)) > placeWallRange.getValue();
     }
 
     private boolean canTouch(BlockPos pos) {
@@ -1215,9 +523,7 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
                 }
             }
         }
-        if (terrainIgnore.getValue()) {
-            CombatUtil.terrainIgnore = true;
-        }
+        if (terrainIgnore.getValue()) CombatUtil.terrainIgnore = true;
         float damage = ExplosionUtil.calculateDamage(pos.getX(), pos.getY(), pos.getZ(), player, predict, 6);
         CombatUtil.modifyPos = null;
         CombatUtil.terrainIgnore = false;
@@ -1225,17 +531,10 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
     }
 
     private double getDamage(PlayerEntity target) {
-        /*
-        if (!PacketMine.INSTANCE.obsidian.isPressed() && slowPlace.getValue() && lastBreakTimer.passed(slowDelay.getValue()) && !PistonCrystal.INSTANCE.isOn()) {
+        if (slowPlace.getValue() && lastBreakTimer.passedMs((long)(float)slowDelay.getValue())) {
             return slowMinDamage.getValue();
         }
-
-         */
-
-        if (slowPlace.getValue() && lastBreakTimer.passedMs(getLong(slowDelay.getValue()))) {
-            return slowMinDamage.getValue();
-        }
-        if (forcePlace.getValue() && EntityUtil.getHealth(target) <= forceMaxHealth.getValue()) { // && !PacketMine.INSTANCE.obsidian.isPressed() && !PistonCrystal.INSTANCE.isOn()) {
+        if (forcePlace.getValue() && EntityUtil.getHealth(target) <= forceMaxHealth.getValue()) {
             return forceMin.getValue();
         }
         if (armorBreaker.getValue()) {
@@ -1246,12 +545,6 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
                 return armorBreakerDamage.getValue();
             }
         }
-        /*
-        if (PistonCrystal.INSTANCE.isOn()) {
-            return autoMinDamage.getValue();
-        }
-        
-         */
         return minDamage.getValue();
     }
 
@@ -1260,44 +553,30 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
         return getCrystal() != -1;
     }
 
-    private final CacheTimer syncTimer = new CacheTimer();
-
     private void doBreak(BlockPos pos) {
         noPosTimer.reset();
         if (!breakSetting.getValue()) return;
-        if (displayTarget != null && displayTarget.hurtTime > waitHurt.getValue() && !syncTimer.passedMs(getLong(syncTimeout.getValue()))) {
-            return;
-        }
+        if (displayTarget != null && displayTarget.hurtTime > waitHurt.getValue() && !syncTimer.passedMs((long)(float)syncTimeout.getValue())) return;
         lastBreakTimer.reset();
-        if (!switchTimer.passedMs(getLong(switchCooldown.getValue()))) {
-            return;
-        }
+        if (!switchTimer.passedMs((long)(float)switchCooldown.getValue())) return;
         syncTimer.reset();
         for (EndCrystalEntity entity : OtherBlockUtils.getEndCrystals(new Box(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 2, pos.getZ() + 1))) {
             if (entity.age < minAge.getValue()) continue;
             if (rotate.getValue() && onBreak.getValue()) {
                 if (!faceVector(entity.getPos().add(0, yOffset.getValue(), 0))) return;
             }
-            if (!CombatUtil.breakTimer.passedMs(getLong(breakDelay.getValue()))) return;
+            if (!CombatUtil.breakTimer.passedMs((long)(float)breakDelay.getValue())) return;
             CombatUtil.breakTimer.reset();
             syncPos = pos;
             MC.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(entity, MC.player.isSneaking()));
             MC.player.resetLastAttackedTicks();
             EntityUtil.swingHand(Hand.MAIN_HAND, swingMode.getValue());
-            if (breakRemove.getValue()) {
-                MC.world.removeEntity(entity.getId(), Entity.RemovalReason.KILLED);
-            }
+            if (breakRemove.getValue()) MC.world.removeEntity(entity.getId(), Entity.RemovalReason.KILLED);
             if (crystalPos != null && displayTarget != null && lastDamage >= getDamage(displayTarget) && afterBreak.getValue()) {
                 if (!yawStep.getValue() || !checkFov.getValue() || Payload.getInstance().rotationManager.inFov(entity.getPos(), fov.getValue())) {
                     doPlace(crystalPos);
                 }
             }
-            /*
-            if (forceWeb.getValue() && AutoWeb.INSTANCE.isOn()) {
-                AutoWeb.force = true;
-            }
-
-             */
             if (rotate.getValue() && !yawStep.getValue() && AntiCheat.INSTANCE.snapBack.getValue()) {
                 Payload.getInstance().rotationManager.snapBack();
             }
@@ -1308,22 +587,14 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
     private void doPlace(BlockPos pos) {
         noPosTimer.reset();
         if (!place.getValue()) return;
-        if (!MC.player.getMainHandStack().getItem().equals(Items.END_CRYSTAL) && !MC.player.getOffHandStack().getItem().equals(Items.END_CRYSTAL) && !findCrystal()) {
-            return;
-        }
-        if (!canTouch(pos.down())) {
-            return;
-        }
+        if (!MC.player.getMainHandStack().getItem().equals(Items.END_CRYSTAL) && !MC.player.getOffHandStack().getItem().equals(Items.END_CRYSTAL) && !findCrystal()) return;
+        if (!canTouch(pos.down())) return;
         BlockPos obsPos = pos.down();
         Direction facing = OtherBlockUtils.getClickSide(obsPos);
         Vec3d vec = obsPos.toCenterPos().add(facing.getVector().getX() * 0.5, facing.getVector().getY() * 0.5, facing.getVector().getZ() * 0.5);
-        if (facing != Direction.UP && facing != Direction.DOWN) {
-            vec = vec.add(0, 0.45, 0);
-        }
-        if (rotate.getValue()) {
-            if (!faceVector(vec)) return;
-        }
-        if (!placeTimer.passedMs(getLong(placeDelay.getValue()))) return;
+        if (facing != Direction.UP && facing != Direction.DOWN) vec = vec.add(0, 0.45, 0);
+        if (rotate.getValue() && !faceVector(vec)) return;
+        if (!placeTimer.passedMs((long)(float)placeDelay.getValue())) return;
         if (MC.player.getMainHandStack().getItem().equals(Items.END_CRYSTAL) || MC.player.getOffHandStack().getItem().equals(Items.END_CRYSTAL)) {
             placeTimer.reset();
             syncPos = pos;
@@ -1363,7 +634,6 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
     }
 
     private void placeCrystal(BlockPos pos) {
-        //PlaceRender.PlaceMap.put(pos, new PlaceRender.placePosition(pos));
         boolean offhand = MC.player.getOffHandStack().getItem() == Items.END_CRYSTAL;
         BlockPos obsPos = pos.down();
         Direction facing = OtherBlockUtils.getClickSide(obsPos);
@@ -1391,20 +661,9 @@ public class CrystalAura extends Module implements TickListener, Render3DListene
             this.player = player;
             if (predictTicks.getValue() > 0) {
                 predict = new PlayerEntity(MC.world, player.getBlockPos(), player.getYaw(), new GameProfile(UUID.fromString("66123666-1234-5432-6666-667563866600"), "CrystalAuraPredictionEntity")) {
-                    @Override
-                    public boolean isSpectator() {
-                        return false;
-                    }
-
-                    @Override
-                    public boolean isCreative() {
-                        return false;
-                    }
-
-                    @Override
-                    public boolean isOnGround() {
-                        return player.isOnGround();
-                    }
+                    @Override public boolean isSpectator() { return false; }
+                    @Override public boolean isCreative() { return false; }
+                    @Override public boolean isOnGround() { return player.isOnGround(); }
                 };
                 predict.setPosition(player.getPos().add(CombatUtil.getMotionVec(player, Math.round(predictTicks.getValue()), true)));
                 predict.setHealth(player.getHealth());

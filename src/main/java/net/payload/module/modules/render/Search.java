@@ -135,8 +135,10 @@ public class Search extends Module implements TickListener, Render3DListener, Ga
     }
 
     public void reset(HashSet<Block> block) {
-        chunksToCheck.clear();
-        foundBlocks.clear();
+        synchronized (foundBlocks) {
+            chunksToCheck.clear();
+            foundBlocks.clear();
+        }
     }
 
     @Override
@@ -145,8 +147,10 @@ public class Search extends Module implements TickListener, Render3DListener, Ga
 
     @Override
     public void onGameLeft(GameLeftEvent event) {
-        chunksToCheck.clear();
-        foundBlocks.clear();
+        synchronized (foundBlocks) {
+            chunksToCheck.clear();
+            foundBlocks.clear();
+        }
     }
 
     @Override
@@ -161,7 +165,13 @@ public class Search extends Module implements TickListener, Render3DListener, Ga
         Entity renderEntity = MC.getCameraEntity() == null ? MC.player : MC.getCameraEntity();
 
         if (!foundBlocks.isEmpty()) {
-            foundBlocks.forEach((chunkLong, positions) -> {
+            // Create a thread-safe copy for rendering
+            Long2ObjectMap<Set<BlockPos>> blocksCopy;
+            synchronized (foundBlocks) {
+                blocksCopy = new Long2ObjectOpenHashMap<>(foundBlocks);
+            }
+            
+            blocksCopy.forEach((chunkLong, positions) -> {
                 ChunkPos blockChunk = new ChunkPos(chunkLong);
 
                 double chunkDistance = Math.sqrt(
@@ -229,7 +239,9 @@ public class Search extends Module implements TickListener, Render3DListener, Ga
             }
 
             if (!positions.isEmpty()) {
-                foundBlocks.put(chunk.getPos().toLong(), positions);
+                synchronized (foundBlocks) {
+                    foundBlocks.put(chunk.getPos().toLong(), positions);
+                }
             }
         }
     }
@@ -242,8 +254,10 @@ public class Search extends Module implements TickListener, Render3DListener, Ga
         Dimension currentDimension = PlayerUtils.getDimension();
         if (lastDimension != currentDimension) {
             lastDimension = currentDimension;
-            chunksToCheck.clear();
-            foundBlocks.clear();
+            synchronized (foundBlocks) {
+                chunksToCheck.clear();
+                foundBlocks.clear();
+            }
         }
 
         // Queue new chunks for scanning

@@ -1,7 +1,8 @@
-
-
 package net.payload.mixin;
 
+import net.minecraft.client.gui.screen.Screen;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import net.minecraft.client.input.Input;
@@ -16,6 +17,7 @@ import net.payload.PayloadClient;
 import net.payload.api.event.Cancelable;
 import net.payload.event.events.MovementPacketsEvent;
 import net.payload.event.events.PlayerMoveEvent;
+import net.payload.module.ModuleManager;
 import net.payload.module.modules.client.Freecam;
 import net.payload.module.modules.exploit.PacketControl;
 import net.payload.module.modules.movement.*;
@@ -29,7 +31,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.client.input.Input;
 import net.payload.event.events.PlayerHealthEvent;
 import net.payload.event.events.SendMovementPacketEvent;
 import net.payload.gui.GuiManager;
@@ -65,6 +69,14 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 
 	@Shadow public abstract float getPitch(float tickDelta);
 
+	@Redirect(method = "tickNausea", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;currentScreen:Lnet/minecraft/client/gui/screen/Screen;"))
+	private Screen redirectPortalCurrentScreen(MinecraftClient client) {
+	    if (Payload.getInstance().moduleManager.portalgui.state.getValue()) {
+	        return null;
+	    }
+	    return client.currentScreen;
+	}
+	
 	@Inject(at = { @At("HEAD") }, method = "setShowsDeathScreen(Z)V")
 	private void onShowDeathScreen(boolean state, CallbackInfo ci) {
 		GuiManager hudManager = Payload.getInstance().guiManager;
@@ -179,24 +191,6 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 		if (!event.isCancelled()) {
 			super.move(movementType, new Vec3d(event.getX(), event.getY(), event.getZ()));
 		}
-/*
-		if (Payload.getInstance().moduleManager.chorusExploit.state.getValue()) {
-			PlayerMoveEvent event = new PlayerMoveEvent(movement.x, movement.y, movement.z);
-			Payload.getInstance().eventManager.Fire(event);
-			if (event.isCancelled()) {
-				ci.cancel();
-			}
-		}
-		else if (Payload.getInstance().moduleManager.strafe.state.getValue()) {
-			PlayerMoveEvent event = new PlayerMoveEvent(movement.x, movement.y, movement.z);
-			Payload.getInstance().eventManager.Fire(event);
-			ci.cancel();
-			if (!event.isCancelled()) {
-				super.move(movementType, new Vec3d(event.getX(), event.getY(), event.getZ()));
-			}
-		}
-
- */
 	}
 
 	@Override
@@ -250,7 +244,6 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 	@Shadow
 	private int ticksSinceLastPositionPacketSent;
 
-
 	@Shadow private boolean lastHorizontalCollision;
 
 	@Shadow public abstract boolean isSneaking();
@@ -302,15 +295,14 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 				rotationManager.rotationYaw = yaw;
 				rotationManager.rotationPitch = pitch;
 
-				double g = yaw - rotationManager.lastYaw;//this.lastYaw;
-				double h = pitch - rotationManager.lastPitch;//this.lastPitch;
+				double g = yaw - rotationManager.lastYaw;
+				double h = pitch - rotationManager.lastPitch;
 				++this.ticksSinceLastPositionPacketSent;
 				boolean bl2 = MathHelper.squaredMagnitude(d, e, f) > MathHelper.square(2.0E-4) || this.ticksSinceLastPositionPacketSent >= 20 || (packetControl.state.getValue() && packetControl.positionSync.getValue() && packetControl.positionCacheTimer.passed(packetControl.positionDelay.getValue()));
 				boolean bl3 = (g != 0.0 || h != 0.0 || (packetControl.state.getValue() && packetControl.rotationSync.getValue() && packetControl.rotationCacheTimer.passed(packetControl.rotationDelay.getValue())));
 				if (packetControl.state.getValue() && packetControl.TimerBypass.getValue()) {
 					bl3 = packetControl.full;
 				}
-
 
 				if (this.hasVehicle()) {
 					Vec3d vec3d = this.getVelocity();
@@ -341,36 +333,20 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 				this.lastOnGround = this.isOnGround();
 				this.autoJumpEnabled = this.client.options.getAutoJump().getValue();
 			}
-			//Alien.EVENT_BUS.post(new UpdateWalkingPlayerEvent(Event.Stage.Post));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-/*
-		SendMovementPacketEvent.Pre sendMovementPacketPreEvent = new SendMovementPacketEvent.Pre();
-		Payload.getInstance().eventManager.Fire(sendMovementPacketPreEvent);
-
-		if (this.isCamera() && MC.player != null) {
-			float yaw = this.getYaw();
-			float pitch = this.getPitch();
-			Payload.getInstance().moduleManager.sprint.setYawSprint(yaw);
-			Payload.getInstance().moduleManager.antiknockback.setYawVelocity(yaw);
-			Payload.getInstance().moduleManager.antiknockback.setPitchVelocity(pitch);
-		}
-
- */
 	}
 
-	@Inject(method = "sendMovementPackets", at = @At("TAIL"))
+			@Inject(method = "sendMovementPackets", at = @At("TAIL"))
 	private void onSendMovementPacketsTail(CallbackInfo info) {
 		SendMovementPacketEvent.Post sendMovementPacketPostEvent = new SendMovementPacketEvent.Post();
-
 		Payload.getInstance().eventManager.Fire(sendMovementPacketPostEvent);
 	}
 
 	@Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V", ordinal = 1, shift = At.Shift.AFTER))
 	private void onTickHasVehicleAfterSendPackets(CallbackInfo info) {
 		SendMovementPacketEvent.Post sendMovementPacketPostEvent = new SendMovementPacketEvent.Post();
-
 		Payload.getInstance().eventManager.Fire(sendMovementPacketPostEvent);
 	}
 }
